@@ -127,6 +127,7 @@ export default {
     }
   },
   watchQuery: ["type"],
+  //
   async asyncData({ params, query }) {
     const resp = await getProfile(params.username);
     const profile = resp.data.profile;
