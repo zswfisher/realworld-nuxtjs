@@ -10,9 +10,11 @@
             <button
               class="btn btn-sm btn-outline-secondary action-btn"
               v-if="!isSelf"
+              @click="onFollowUser"
             >
               <i class="ion-plus-round"></i>
-              &nbsp; Follow {{ profile.username }}
+              &nbsp; {{ !profile.following ? "Follow" : "Unfollow" }}
+              {{ profile.username }}
             </button>
           </div>
         </div>
@@ -36,12 +38,12 @@
                     },
                     query: {
                       type: 'author',
-                    }
+                    },
                   }"
                   >My Articles</nuxt-link
                 >
               </li>
-              
+
               <li class="nav-item">
                 <nuxt-link
                   class="nav-link"
@@ -54,7 +56,7 @@
                     },
                     query: {
                       type: 'favorited',
-                    }
+                    },
                   }"
                   >Favorited Articles</nuxt-link
                 >
@@ -68,19 +70,39 @@
             :key="item.slug"
           >
             <div class="article-meta">
-              <a href=""><img :src="item.author.image" /></a>
+              <nuxt-link
+                :to="{
+                  name: 'profile',
+                  params: {
+                    username: item.author.username,
+                  },
+                }"
+              >
+                <img :src="item.author.image" />
+              </nuxt-link>
               <div class="info">
-                <a href="" class="author">{{ item.author.username }}</a>
-                <span class="date">{{ item.createdAt | date('MMM DD, YYYY')}}</span>
+                <nuxt-link
+                  :to="{
+                    name: 'profile',
+                    params: {
+                      username: item.author.username,
+                    },
+                  }"
+                >
+                  {{ item.author.username }}
+                </nuxt-link>
+                <span class="date">{{
+                  item.createdAt | date("MMM DD, YYYY")
+                }}</span>
               </div>
-              <button 
+              <button
                 class="btn btn-outline-primary btn-sm pull-xs-right"
                 :class="{ active: item.favorited }"
               >
                 <i class="ion-heart"></i> {{ item.favoritesCount }}
               </button>
             </div>
-            <nuxt-link 
+            <nuxt-link
               class="preview-link"
               :to="{
                 name: 'article',
@@ -106,7 +128,7 @@
 </template>
 
 <script>
-import { getProfile } from "@/api/user";
+import { getProfile, followUser, unfollowUser } from "@/api/user";
 import { getArticles } from "@/api/article";
 import { mapState } from "vuex";
 
@@ -122,23 +144,31 @@ export default {
   },
   computed: {
     ...mapState(["user"]),
-    isSelf () {
+    isSelf() {
       return this.user.username === this.profile.username;
-    }
+    },
   },
   watchQuery: ["type"],
-  //
   async asyncData({ params, query }) {
     const resp = await getProfile(params.username);
     const profile = resp.data.profile;
     // 获取文章信息
-    const articleReap = query.type === 'author'
-      ? await getArticles({ author: profile.username })
-      : await getArticles({ favorited: profile.username });
+    const articleReap =
+      query.type === "author"
+        ? await getArticles({ author: profile.username })
+        : await getArticles({ favorited: profile.username });
     return {
       profile,
       articles: articleReap.data.articles,
-    }
+    };
+  },
+  methods: {
+    async onFollowUser() {
+      const res = !this.profile.following
+        ? await followUser(this.profile.username)
+        : await unfollowUser(this.profile.username);
+      this.profile = res.data.profile;
+    },
   },
 };
 </script>
